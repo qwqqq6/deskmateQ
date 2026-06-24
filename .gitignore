@@ -1,0 +1,28 @@
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 运行期数据 (用户数据存于 %LOCALAPPDATA%\DeskMate, 不应进仓库)
+*.db
+*.sqlite
+*.sqlite3
+*.log
