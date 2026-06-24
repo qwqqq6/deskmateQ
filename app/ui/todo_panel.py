@@ -50,12 +50,11 @@ class TodoItemRow(QWidget):
 
         self._editor: QLineEdit | None = None
 
-        self._del = QPushButton("✕")
+        self._del = QPushButton("删除")
         self._del.setObjectName("Ghost")
-        self._del.setFixedSize(22, 22)
         self._del.setCursor(Qt.PointingHandCursor)
         self._del.clicked.connect(self._on_delete)
-        self._del.setToolTip("删除")
+        self._del.setToolTip("删除该待办")
         lay.addWidget(self._del)
 
     def _apply_label_style(self) -> None:

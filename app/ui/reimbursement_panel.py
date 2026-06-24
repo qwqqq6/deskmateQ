@@ -138,11 +138,17 @@ class ReimbursementCard(QFrame):
             self.changed.emit()
 
     def _on_delete(self) -> None:
-        resp = QMessageBox.question(
-            self, "删除报销", f"确认删除“{self._item.title or '该记录'}”及其附件?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-        )
-        if resp == QMessageBox.Yes:
+        # 用显式构造的对话框并置顶, 避免被无边框置顶主窗口遮挡
+        box = QMessageBox(self._panel.window())
+        box.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+        box.setIcon(QMessageBox.Question)
+        box.setWindowTitle("删除报销")
+        box.setText(f"确认删除“{self._item.title or '该记录'}”及其附件?")
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        box.setDefaultButton(QMessageBox.No)
+        box.raise_()
+        box.activateWindow()
+        if box.exec() == QMessageBox.Yes:
             self._repo.delete(self._item.id)
             self.changed.emit()
 

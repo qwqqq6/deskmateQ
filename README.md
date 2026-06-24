@@ -7,7 +7,17 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078d6)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-DeskMate 是一个常驻桌面的轻量效率工具, 用 PySide6 (Qt) 构建。无边框圆角窗口、深色/浅色主题、贴边自动隐藏, 把日常的待办、工作记录和报销整理收纳在一个随手可及的小窗里。
+DeskMateQ 是一个常驻桌面的轻量效率工具, 用 PySide6 (Qt) 构建。无边框圆角窗口、深色/浅色主题、贴边自动隐藏, 把日常的待办、工作记录和报销整理收纳在一个随手可及的小窗里。
+
+## 📸 界面预览
+
+| 四象限待办 | 工作日志 | 报销记录 |
+|:---:|:---:|:---:|
+| ![四象限待办](docs/screenshots/todo.png) | ![工作日志](docs/screenshots/worklog.png) | ![报销记录](docs/screenshots/reimb.png) |
+
+| 浅色主题 | 设置 |
+|:---:|:---:|
+| ![浅色主题](docs/screenshots/todo_light.png) | ![设置](docs/screenshots/settings.png) |
 
 ## ✨ 功能
 
@@ -41,7 +51,7 @@ python main.py
 
 ## 📦 下载 / 打包
 
-- **直接下载**: 前往 [Releases](https://github.com/qwqqq6/deskmate/releases) 下载 `DeskMateQ.exe`, 双击即可运行 (免安装, Windows 64 位)。
+- **直接下载**: 前往 [Releases](https://github.com/qwqqq6/deskmateQ/releases) 下载 `DeskMateQ.exe`, 双击即可运行 (免安装, Windows 64 位)。
 - **自行打包**:
 
   ```bash
