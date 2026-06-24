@@ -1,4 +1,4 @@
-# DeskMate · 桌面效率小部件
+# DeskMateQ · 桌面效率小部件
 
 > 开机自启的无边框桌面小部件, 集成四象限待办、工作日志(周报)、报销记录, 数据自动保存并支持备份/恢复。
 
@@ -38,6 +38,18 @@ python main.py
 ```
 
 退出: 通过系统托盘菜单「退出」。点关闭按钮仅最小化到托盘。
+
+## 📦 下载 / 打包
+
+- **直接下载**: 前往 [Releases](https://github.com/qwqqq6/deskmate/releases) 下载 `DeskMateQ.exe`, 双击即可运行 (免安装, Windows 64 位)。
+- **自行打包**:
+
+  ```bash
+  pip install pyinstaller
+  pyinstaller --noconfirm --clean --onefile --windowed --name DeskMateQ --icon app.ico main.py
+  ```
+
+  产物在 `dist/DeskMateQ.exe`。
 
 ## 📂 数据位置
 

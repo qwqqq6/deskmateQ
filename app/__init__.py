@@ -8,4 +8,4 @@
 """
 
 __version__ = "1.0.0"
-__app_name__ = "DeskMate"
+__app_name__ = "DeskMateQ"

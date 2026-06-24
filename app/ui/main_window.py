@@ -65,7 +65,7 @@ class TitleBar(QWidget):
         lay.setContentsMargins(14, 0, 8, 0)
         lay.setSpacing(6)
 
-        title = QLabel("DeskMate")
+        title = QLabel("DeskMateQ")
         title.setObjectName("AppTitle")
         lay.addWidget(title)
         lay.addStretch(1)
@@ -134,7 +134,7 @@ class MainWindow(QWidget):
         self._config = config
         self._backup = BackupService(config.backup_dir)
 
-        self.setWindowTitle("DeskMate")
+        self.setWindowTitle("DeskMateQ")
         self.setWindowIcon(_make_icon())
         self.setAttribute(Qt.WA_TranslucentBackground)
         self._apply_window_flags()
@@ -341,7 +341,7 @@ class MainWindow(QWidget):
     # --- 系统托盘 ----------------------------------------------------
     def _setup_tray(self) -> None:
         self._tray = QSystemTrayIcon(_make_icon(), self)
-        self._tray.setToolTip("DeskMate")
+        self._tray.setToolTip("DeskMateQ")
         menu = QMenu()
         show_act = QAction("显示窗口", self)
         show_act.triggered.connect(self.show_from_tray)
@@ -365,7 +365,7 @@ class MainWindow(QWidget):
         self._persist_geometry()
         self.hide()
         self._tray.showMessage(
-            "DeskMate", "已最小化到系统托盘, 数据已自动保存。",
+            "DeskMateQ", "已最小化到系统托盘, 数据已自动保存。",
             QSystemTrayIcon.Information, 1500,
         )
 
@@ -381,7 +381,7 @@ class MainWindow(QWidget):
     def _manual_backup(self) -> None:
         info = self._backup.create_backup(label="tray")
         self._tray.showMessage(
-            "DeskMate", f"已备份: {info.name}",
+            "DeskMateQ", f"已备份: {info.name}",
             QSystemTrayIcon.Information, 1500,
         )
 
