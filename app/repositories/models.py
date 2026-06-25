@@ -26,6 +26,8 @@ class WorkLog:
     content: str = ""
     logged_at: str = ""
     tag: str = ""
+    # 若由某条待办勾选完成自动生成, 记录来源待办 id (取消完成时据此回删)
+    source_todo_id: int | None = None
     created_at: str = ""
     updated_at: str = ""
 

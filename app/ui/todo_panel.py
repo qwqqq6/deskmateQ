@@ -23,14 +23,22 @@ QUADRANTS = [
 ]
 
 class TodoItemRow(QWidget):
-    """单条待办: 复选框 + 标题 + 删除按钮。"""
+    """单条待办: 复选框 + 标题 + 删除按钮。
+
+    勾选完成时自动写一条工作日志 (来源标记为该待办), 取消完成时回删该日志。
+    """
 
     changed = Signal()
 
-    def __init__(self, todo: Todo, repo: TodoRepository) -> None:
+    def __init__(self, todo: Todo, repo: TodoRepository,
+                 worklog_repo: "WorkLogRepository | None" = None) -> None:
         super().__init__()
         self._todo = todo
         self._repo = repo
+        if worklog_repo is None:
+            from app.repositories.worklog_repo import WorkLogRepository
+            worklog_repo = WorkLogRepository()
+        self._worklog = worklog_repo
         self._editing = False
 
         lay = QHBoxLayout(self)
@@ -68,10 +76,21 @@ class TodoItemRow(QWidget):
     def _on_toggle(self, checked: bool) -> None:
         self._todo.done = checked
         self._repo.set_done(self._todo.id, checked)
+        # 勾选完成 -> 自动写日志; 取消完成 -> 回删自动日志
+        if checked:
+            if self._worklog.get_by_source_todo(self._todo.id) is None:
+                self._worklog.add(
+                    self._todo.title, tag="待办完成",
+                    source_todo_id=self._todo.id,
+                )
+        else:
+            self._worklog.delete_by_source_todo(self._todo.id)
         self._apply_label_style()
         self.changed.emit()
 
     def _on_delete(self) -> None:
+        # 删除待办时连带清理它自动生成的日志
+        self._worklog.delete_by_source_todo(self._todo.id)
         self._repo.delete(self._todo.id)
         self.changed.emit()
 
@@ -116,11 +135,13 @@ class QuadrantCard(QFrame):
     changed = Signal()
 
     def __init__(self, quadrant: int, title: str, color_key: str,
-                 repo: TodoRepository) -> None:
+                 repo: TodoRepository,
+                 worklog_repo: "WorkLogRepository | None" = None) -> None:
         super().__init__()
         self.setObjectName("Card")
         self._quadrant = quadrant
         self._repo = repo
+        self._worklog = worklog_repo
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(10, 8, 10, 10)
@@ -188,7 +209,7 @@ class QuadrantCard(QFrame):
         pending = sum(1 for t in todos if not t.done)
         self._count.setText(str(pending))
         for todo in todos:
-            row = TodoItemRow(todo, self._repo)
+            row = TodoItemRow(todo, self._repo, self._worklog)
             row.changed.connect(self._on_row_changed)
             self._list_lay.insertWidget(self._list_lay.count() - 1, row)
 
@@ -202,10 +223,15 @@ class TodoPanel(QWidget):
 
     data_changed = Signal()
 
-    def __init__(self, repo: TodoRepository | None = None) -> None:
+    def __init__(self, repo: TodoRepository | None = None,
+                 worklog_repo=None) -> None:
         super().__init__()
         self.setObjectName("Panel")
         self._repo = repo or TodoRepository()
+        if worklog_repo is None:
+            from app.repositories.worklog_repo import WorkLogRepository
+            worklog_repo = WorkLogRepository()
+        self._worklog = worklog_repo
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -225,7 +251,7 @@ class TodoPanel(QWidget):
         grid.setSpacing(10)
         self._cards: list[QuadrantCard] = []
         for idx, (q, title, ckey) in enumerate(QUADRANTS):
-            card = QuadrantCard(q, title, ckey, self._repo)
+            card = QuadrantCard(q, title, ckey, self._repo, self._worklog)
             card.changed.connect(self.data_changed.emit)
             self._cards.append(card)
             grid.addWidget(card, idx // 2, idx % 2)

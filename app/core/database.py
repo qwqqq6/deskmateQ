@@ -12,7 +12,7 @@ from pathlib import Path
 from app.core.paths import paths
 
 # schema 版本, 每次结构变更递增并在 _MIGRATIONS 增加对应步骤。
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS todos (
@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS worklogs (
     -- 记录发生时间, 用于周报归类 (ISO8601 本地时间)
     logged_at   TEXT NOT NULL,
     tag         TEXT NOT NULL DEFAULT '',
+    -- 若该日志由某条待办勾选完成自动生成, 记录来源待办 id; 取消完成时据此回删
+    source_todo_id INTEGER,
     created_at  TEXT NOT NULL,
     updated_at  TEXT NOT NULL
 );
@@ -69,7 +71,13 @@ CREATE INDEX IF NOT EXISTS idx_attach_reimb ON attachments(reimbursement_id);
 """
 
 # 未来迁移步骤: {目标版本: [sql, ...]}
-_MIGRATIONS: dict[int, list[str]] = {}
+_MIGRATIONS: dict[int, list[str]] = {
+    # v2: worklogs 增加 source_todo_id, 支持四象限勾选完成自动写日志
+    2: [
+        "ALTER TABLE worklogs ADD COLUMN source_todo_id INTEGER",
+        "CREATE INDEX IF NOT EXISTS idx_worklogs_source ON worklogs(source_todo_id)",
+    ],
+}
 
 
 class Database:
@@ -105,7 +113,13 @@ class Database:
             version = self._conn.execute("PRAGMA user_version").fetchone()[0]
             for target in range(version + 1, SCHEMA_VERSION + 1):
                 for stmt in _MIGRATIONS.get(target, []):
-                    self._conn.execute(stmt)
+                    try:
+                        self._conn.execute(stmt)
+                    except sqlite3.OperationalError as exc:
+                        # 新库由 _SCHEMA 已含新列, 重复执行 ALTER 会报
+                        # "duplicate column"; 幂等忽略即可
+                        if "duplicate column" not in str(exc).lower():
+                            raise
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             self._conn.commit()
 

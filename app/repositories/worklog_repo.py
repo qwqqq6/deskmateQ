@@ -14,6 +14,7 @@ def _row_to_log(row) -> WorkLog:
         content=row["content"],
         logged_at=row["logged_at"],
         tag=row["tag"],
+        source_todo_id=row["source_todo_id"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -23,19 +24,36 @@ class WorkLogRepository:
     def __init__(self, database: Database | None = None) -> None:
         self._db = database or default_db
 
-    def add(self, content: str, tag: str = "", logged_at: str | None = None) -> WorkLog:
+    def add(self, content: str, tag: str = "", logged_at: str | None = None,
+            source_todo_id: int | None = None) -> WorkLog:
         ts = now_iso()
         logged = logged_at or ts
         cur = self._db.execute(
-            "INSERT INTO worklogs (content, logged_at, tag, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (content, logged, tag, ts, ts),
+            "INSERT INTO worklogs (content, logged_at, tag, source_todo_id, "
+            "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (content, logged, tag, source_todo_id, ts, ts),
         )
         return self.get(cur.lastrowid)
 
     def get(self, log_id: int) -> WorkLog | None:
         row = self._db.query_one("SELECT * FROM worklogs WHERE id = ?", (log_id,))
         return _row_to_log(row) if row else None
+
+    def get_by_source_todo(self, todo_id: int) -> WorkLog | None:
+        """返回由指定待办自动生成的日志 (若存在)。"""
+        row = self._db.query_one(
+            "SELECT * FROM worklogs WHERE source_todo_id = ? "
+            "ORDER BY id DESC LIMIT 1",
+            (todo_id,),
+        )
+        return _row_to_log(row) if row else None
+
+    def delete_by_source_todo(self, todo_id: int) -> int:
+        """删除由指定待办自动生成的日志 (取消完成时调用)。返回删除条数。"""
+        cur = self._db.execute(
+            "DELETE FROM worklogs WHERE source_todo_id = ?", (todo_id,)
+        )
+        return cur.rowcount
 
     def recent(self, limit: int = 200) -> list[WorkLog]:
         rows = self._db.query(
