@@ -7,5 +7,5 @@
     ui           表现层: 无边框桌面小部件与各功能面板
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __app_name__ = "DeskMateQ"
