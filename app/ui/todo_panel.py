@@ -2,10 +2,12 @@
 
 按艾森豪威尔矩阵把待办分为四个象限, 每个象限是一张卡片,
 内含可勾选、可编辑、可删除的条目, 支持快速添加。
+条目可在四个象限之间拖拽移动。
 """
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QMimeData, Qt, Signal
+from PySide6.QtGui import QDrag
 from PySide6.QtWidgets import (
     QCheckBox, QFrame, QGridLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget,
@@ -21,6 +23,9 @@ QUADRANTS = [
     (3, "紧急 · 不重要", "q3"),
     (4, "不紧急 · 不重要", "q4"),
 ]
+
+# 拖拽待办时携带的 MIME 类型, 内容为 todo id 的字符串
+TODO_MIME = "application/x-deskmateq-todo-id"
 
 class TodoItemRow(QWidget):
     """单条待办: 复选框 + 标题 + 删除按钮。
@@ -64,6 +69,27 @@ class TodoItemRow(QWidget):
         self._del.clicked.connect(self._on_delete)
         self._del.setToolTip("删除该待办")
         lay.addWidget(self._del)
+
+        # 拖拽起点 (用于区分点击与拖动)
+        self._drag_start = None
+
+    # --- 拖拽: 把待办拖到其它象限 ------------------------------------
+    def mousePressEvent(self, event):  # noqa: N802
+        if event.button() == Qt.LeftButton and not self._editing:
+            self._drag_start = event.position().toPoint()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):  # noqa: N802
+        if (self._drag_start is None or self._editing
+                or not (event.buttons() & Qt.LeftButton)):
+            return
+        if (event.position().toPoint() - self._drag_start).manhattanLength() < 12:
+            return
+        drag = QDrag(self)
+        mime = QMimeData()
+        mime.setData(TODO_MIME, str(self._todo.id).encode("utf-8"))
+        drag.setMimeData(mime)
+        drag.exec(Qt.MoveAction)
 
     def _apply_label_style(self) -> None:
         if self._todo.done:
@@ -133,12 +159,14 @@ class QuadrantCard(QFrame):
     """单个象限卡片。"""
 
     changed = Signal()
+    todo_moved = Signal(int, int)  # (todo_id, target_quadrant)
 
     def __init__(self, quadrant: int, title: str, color_key: str,
                  repo: TodoRepository,
                  worklog_repo: "WorkLogRepository | None" = None) -> None:
         super().__init__()
         self.setObjectName("Card")
+        self.setAcceptDrops(True)
         self._quadrant = quadrant
         self._repo = repo
         self._worklog = worklog_repo
@@ -188,6 +216,33 @@ class QuadrantCard(QFrame):
         outer.addLayout(add_row)
 
         self.reload()
+
+    # --- 拖放: 接收从其它象限拖来的待办 ------------------------------
+    def dragEnterEvent(self, event):  # noqa: N802
+        if event.mimeData().hasFormat(TODO_MIME):
+            event.acceptProposedAction()
+            self.setProperty("dropHover", True)
+            self.style().unpolish(self)
+            self.style().polish(self)
+
+    def dragLeaveEvent(self, event):  # noqa: N802
+        self.setProperty("dropHover", False)
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+    def dropEvent(self, event):  # noqa: N802
+        self.setProperty("dropHover", False)
+        self.style().unpolish(self)
+        self.style().polish(self)
+        data = event.mimeData().data(TODO_MIME)
+        if not data:
+            return
+        try:
+            todo_id = int(bytes(data).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return
+        event.acceptProposedAction()
+        self.todo_moved.emit(todo_id, self._quadrant)
 
     def _on_add(self) -> None:
         text = self._input.text().strip()
@@ -242,7 +297,7 @@ class TodoPanel(QWidget):
         title.setObjectName("PanelTitle")
         head.addWidget(title)
         head.addStretch(1)
-        hint = QLabel("双击条目可编辑")
+        hint = QLabel("双击编辑 · 拖拽可移动象限")
         hint.setObjectName("Faint")
         head.addWidget(hint)
         root.addLayout(head)
@@ -253,6 +308,7 @@ class TodoPanel(QWidget):
         for idx, (q, title, ckey) in enumerate(QUADRANTS):
             card = QuadrantCard(q, title, ckey, self._repo, self._worklog)
             card.changed.connect(self.data_changed.emit)
+            card.todo_moved.connect(self._on_todo_moved)
             self._cards.append(card)
             grid.addWidget(card, idx // 2, idx % 2)
         grid.setRowStretch(0, 1)
@@ -260,6 +316,14 @@ class TodoPanel(QWidget):
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 1)
         root.addLayout(grid, 1)
+
+    def _on_todo_moved(self, todo_id: int, target_quadrant: int) -> None:
+        todo = self._repo.get(todo_id)
+        if todo is None or todo.quadrant == target_quadrant:
+            return
+        self._repo.move_quadrant(todo_id, target_quadrant)
+        self.reload()
+        self.data_changed.emit()
 
     def reload(self) -> None:
         for card in self._cards:

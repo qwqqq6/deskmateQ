@@ -298,6 +298,11 @@ QFrame#Card {{
     border-radius: {r}px;
 }}
 QFrame#Card:hover {{ border: 1px solid {border}; }}
+/* 拖拽待办悬停于象限卡片时高亮 */
+QFrame#Card[dropHover="true"] {{
+    border: 2px dashed {accent};
+    background-color: {accent_soft};
+}}
 QFrame#InputCard {{
     background-color: {bg_alt};
     border: 1px solid {border_soft};
