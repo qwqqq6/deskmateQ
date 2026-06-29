@@ -18,6 +18,7 @@ from app.core.config import Config
 from app.services.backup_service import BackupService
 from app.ui.components.toast import Toast
 from app.ui.edge_dock import EdgeDock
+from app.ui.project_panel import ProjectPanel
 from app.ui.reimbursement_panel import ReimbursementPanel
 from app.ui.settings_panel import SettingsPanel
 from app.ui.theme import COLORS, build_qss
@@ -25,6 +26,7 @@ from app.ui.todo_panel import TodoPanel
 from app.ui.worklog_panel import WorkLogPanel
 
 _NAV = [
+    ("project", "项目", "◈", "  ◈   项目"),
     ("todo", "四象限待办", "▦", "  ▦   四象限"),
     ("worklog", "工作日志", "✎", "  ✎   工作日志"),
     ("reimb", "报销记录", "¥", "  ¥   报销记录"),
@@ -249,10 +251,14 @@ class MainWindow(QWidget):
         return nav
 
     def _build_panels(self) -> None:
+        self._project = ProjectPanel()
         self._todo = TodoPanel()
         self._worklog = WorkLogPanel()
         self._reimb = ReimbursementPanel()
         self._settings = SettingsPanel(self._config)
+
+        # 项目增删改时刷新四象限筛选栏
+        self._project.data_changed.connect(self._todo.notify_projects_changed)
 
         self._worklog.toast_requested.connect(self.show_toast)
         self._settings.toast_requested.connect(self.show_toast)
@@ -262,6 +268,7 @@ class MainWindow(QWidget):
         self._settings.restore_requested.connect(self._on_restore)
 
         self._panel_index = {
+            "project": self._stack.addWidget(self._project),
             "todo": self._stack.addWidget(self._todo),
             "worklog": self._stack.addWidget(self._worklog),
             "reimb": self._stack.addWidget(self._reimb),
@@ -277,7 +284,9 @@ class MainWindow(QWidget):
         self._config.active_panel = key
         self._config.save()
         # 进入面板时刷新数据
-        if key == "todo":
+        if key == "project":
+            self._project.reload()
+        elif key == "todo":
             self._todo.reload()
         elif key == "worklog":
             self._worklog.reload()

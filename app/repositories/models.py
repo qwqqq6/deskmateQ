@@ -8,6 +8,17 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class Project:
+    id: int | None = None
+    name: str = ""
+    color: str = "#5c9bd1"
+    status: str = "active"
+    sort_order: int = 0
+    created_at: str = ""
+    updated_at: str = ""
+
+
+@dataclass
 class Todo:
     id: int | None = None
     title: str = ""
@@ -18,6 +29,7 @@ class Todo:
     created_at: str = ""
     updated_at: str = ""
     done_at: str | None = None
+    project_id: int | None = None
 
 
 @dataclass

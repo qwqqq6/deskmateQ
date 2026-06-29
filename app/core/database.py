@@ -12,7 +12,7 @@ from pathlib import Path
 from app.core.paths import paths
 
 # schema 版本, 每次结构变更递增并在 _MIGRATIONS 增加对应步骤。
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS todos (
@@ -25,7 +25,18 @@ CREATE TABLE IF NOT EXISTS todos (
     sort_order  INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT NOT NULL,
     updated_at  TEXT NOT NULL,
-    done_at     TEXT
+    done_at     TEXT,
+    project_id  INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS projects (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    color       TEXT NOT NULL DEFAULT '#5c9bd1',
+    status      TEXT NOT NULL DEFAULT 'active',
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS worklogs (
@@ -76,6 +87,19 @@ _MIGRATIONS: dict[int, list[str]] = {
     2: [
         "ALTER TABLE worklogs ADD COLUMN source_todo_id INTEGER",
         "CREATE INDEX IF NOT EXISTS idx_worklogs_source ON worklogs(source_todo_id)",
+    ],
+    # v3: 新增 projects 表; todos 增加 project_id
+    3: [
+        "CREATE TABLE IF NOT EXISTS projects ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "name TEXT NOT NULL, "
+        "color TEXT NOT NULL DEFAULT '#5c9bd1', "
+        "status TEXT NOT NULL DEFAULT 'active', "
+        "sort_order INTEGER NOT NULL DEFAULT 0, "
+        "created_at TEXT NOT NULL, "
+        "updated_at TEXT NOT NULL)",
+        "ALTER TABLE todos ADD COLUMN project_id INTEGER",
+        "CREATE INDEX IF NOT EXISTS idx_todos_project ON todos(project_id)",
     ],
 }
 
